@@ -1,0 +1,44 @@
+# =============================================================
+#  WebPlants - configuração
+#  Edite os valores e reinicie o servidor para aplicar.
+# =============================================================
+
+servidor:
+  host: "0.0.0.0"
+  porta: 8000
+
+camera:
+  indice: 0            # 0 = primeira câmera. Se não abrir, tente 1, 2...
+  largura: 1280
+  altura: 720
+  fps: 30
+
+stream:
+  fps: 15              # FPS enviado à página (menor = menos internet)
+  qualidade_jpeg: 75   # 0-100
+
+deteccao:
+  fps: 4               # quantas análises por segundo
+  largura_analise: 640 # a imagem é reduzida para essa largura antes de analisar
+
+  # --- Planta (cor verde em HSV; OpenCV usa H de 0 a 179) ---
+  verde_h_min: 30
+  verde_h_max: 90
+  verde_s_min: 40
+  verde_v_min: 40
+  planta_area_min: 0.01        # fração da imagem (0.01 = 1%)
+
+  # --- Mancha preta ---
+  # "Preto" = brilho abaixo de (fator_relativo x brilho da folha), limitado por v_max.
+  # Veja os valores atuais no topo da tela de Calibração.
+  mancha_fator_relativo: 0.55  # aumente (ex.: 0.7) se a mancha não for detectada
+  mancha_v_max: 110            # teto absoluto de brilho (0-255)
+  mancha_area_min: 40          # em pixels (na imagem de análise)
+  mancha_area_max: 0.15        # fração da área da planta
+  mancha_cercada_min: 0.45     # fração da borda da mancha que precisa ser folha
+  mancha_borda_px: 25          # tamanho do "entalhe" na borda da folha que ainda conta
+
+alerta:
+  quadros_seguidos: 8          # análises seguidas com mancha antes de alertar
+  intervalo_minutos: 15        # tempo mínimo entre dois alertas
+  manter_ultimos: 20           # quantos alertas mostrar na página

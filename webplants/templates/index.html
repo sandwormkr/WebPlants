@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebPlants · Horta do colégio</title>
+<style>
+  :root {
+    --fundo: #0f1a14; --cartao: #17261d; --borda: #24382b;
+    --texto: #e6efe8; --suave: #93a89a; --verde: #4cc26a; --vermelho: #ff5a5a; --amarelo: #f2c94c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: var(--fundo); color: var(--texto); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+           padding: 14px 20px; border-bottom: 1px solid var(--borda); flex-wrap: wrap; }
+  h1 { font-size: 1.2rem; margin: 0; }
+  h1 span { color: var(--verde); }
+  .ao-vivo { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--suave); }
+  .ponto { width: 9px; height: 9px; border-radius: 50%; background: var(--vermelho); }
+  .ponto.on { background: var(--verde); box-shadow: 0 0 8px var(--verde); }
+  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr); gap: 16px;
+         padding: 16px 20px; max-width: 1500px; margin: 0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; }
+  .video { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16/9; }
+  .video img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .barra { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  button { background: transparent; color: var(--texto); border: 1px solid var(--borda);
+           padding: 6px 12px; border-radius: 8px; cursor: pointer; font: inherit; font-size: .85rem; }
+  button.ativo { background: var(--verde); color: #08120b; border-color: var(--verde); font-weight: 600; }
+  .legenda { font-size: .8rem; color: var(--suave); margin-left: auto; }
+  .legenda b.p { color: var(--verde); } .legenda b.m { color: var(--vermelho); }
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .num { font-size: 1.6rem; font-weight: 700; }
+  .rot { font-size: .78rem; color: var(--suave); }
+  .num.alerta { color: var(--vermelho); }
+  .linha { display: flex; justify-content: space-between; font-size: .85rem; padding: 5px 0;
+           border-top: 1px solid var(--borda); }
+  .linha:first-child { border-top: 0; }
+  .ok { color: var(--verde); } .ruim { color: var(--amarelo); }
+  h2 { font-size: .95rem; margin: 0 0 10px; }
+  .lateral { display: flex; flex-direction: column; gap: 16px; }
+  .alertas { display: flex; flex-direction: column; gap: 10px; max-height: 52vh; overflow: auto; }
+  .alerta { display: flex; gap: 10px; align-items: center; text-decoration: none; color: inherit; }
+  .alerta img { width: 96px; aspect-ratio: 16/9; object-fit: cover; border-radius: 6px; border: 1px solid var(--borda); }
+  .vazio { color: var(--suave); font-size: .85rem; }
+  .barra-prog { height: 6px; background: var(--borda); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .barra-prog div { height: 100%; background: var(--vermelho); width: 0; transition: width .3s; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🌱 Web<span>Plants</span> · Horta do colégio</h1>
+  <div class="ao-vivo"><div class="ponto" id="ponto"></div><span id="txtCamera">conectando…</span></div>
+</header>
+
+<main>
+  <section class="cartao">
+    <div class="video"><img id="video" src="/stream" alt="Transmissão ao vivo da horta"></div>
+    <div class="barra">
+      <button id="btnVideo" class="ativo" onclick="modo('video')">Vídeo</button>
+      <button id="btnMascara" onclick="modo('mascara')">Calibração</button>
+      <div class="legenda" id="legenda"><b class="p">■</b> planta &nbsp; <b class="m">■</b> mancha preta</div>
+    </div>
+  </section>
+
+  <aside class="lateral">
+    <div class="cartao">
+      <div class="grade">
+        <div><div class="num" id="nPlantas">–</div><div class="rot">plantas no quadro</div></div>
+        <div><div class="num" id="nManchas">–</div><div class="rot">manchas agora</div></div>
+      </div>
+      <div class="rot" style="margin-top:12px">Confirmação de alerta</div>
+      <div class="barra-prog"><div id="prog"></div></div>
+    </div>
+
+    <div class="cartao">
+      <div class="linha"><span>Análise</span><span id="sAnalise">–</span></div>
+      <div class="linha"><span>Brilho folha / limiar preto</span><span id="sLimiar">–</span></div>
+      <div class="linha"><span>Telegram</span><span id="sTelegram">–</span></div>
+      <div class="linha"><span>Próximo alerta</span><span id="sProximo">–</span></div>
+    </div>
+
+    <div class="cartao">
+      <h2>Últimos alertas</h2>
+      <div class="alertas" id="alertas"><div class="vazio">Nenhum alerta ainda.</div></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  function modo(m) {
+    $("video").src = "/stream?modo=" + m + "&t=" + Date.now();
+    $("btnVideo").classList.toggle("ativo", m === "video");
+    $("btnMascara").classList.toggle("ativo", m === "mascara");
+    $("legenda").innerHTML = m === "video"
+      ? '<b class="p">■</b> planta &nbsp; <b class="m">■</b> mancha preta'
+      : '<span style="color:#4cc26a">■</span> folha &nbsp; <span style="color:#ffd200">■</span> pouca folha em volta &nbsp; <span style="color:#ff50c8">■</span> tamanho fora &nbsp; <span style="color:#ff5a5a">■</span> mancha';
+  }
+
+  // Se o stream cair (ex.: internet oscilou), reconecta sozinho
+  $("video").addEventListener("error", () => setTimeout(() => {
+    const m = $("btnMascara").classList.contains("ativo") ? "mascara" : "video";
+    modo(m);
+  }, 2000));
+
+  function tempo(s) {
+    if (!s) return "liberado";
+    const m = Math.floor(s / 60), r = s % 60;
+    return m ? `${m} min ${r} s` : `${r} s`;
+  }
+
+  let ultimaLista = "";
+  async function atualizar() {
+    try {
+      const r = await fetch("/api/status", { cache: "no-store" });
+      const s = await r.json();
+      $("ponto").classList.toggle("on", s.camera);
+      $("txtCamera").textContent = s.camera ? "ao vivo" : "câmera desconectada";
+      $("nPlantas").textContent = s.plantas;
+      $("nManchas").textContent = s.manchas;
+      $("nManchas").classList.toggle("alerta", s.manchas > 0);
+      $("prog").style.width = Math.min(100, 100 * s.seguidos / s.necessarios) + "%";
+      $("sAnalise").textContent = s.analise_ms + " ms";
+      $("sLimiar").textContent = s.plantas ? `${s.brilho_folha} / ≤ ${s.limiar}` : "sem planta";
+      $("sTelegram").textContent = s.telegram ? "configurado" : "não configurado";
+      $("sTelegram").className = s.telegram ? "ok" : "ruim";
+      $("sProximo").textContent = tempo(s.proximo_alerta_em);
+
+      const lista = JSON.stringify(s.alertas);
+      if (lista !== ultimaLista) {
+        ultimaLista = lista;
+        $("alertas").innerHTML = s.alertas.length ? s.alertas.map(a => `
+          <a class="alerta" href="/alertas/${a.arquivo}" target="_blank">
+            <img src="/alertas/${a.arquivo}" alt="">
+            <div><div>${a.manchas} mancha(s)</div><div class="rot">${a.quando}</div></div>
+          </a>`).join("") : '<div class="vazio">Nenhum alerta ainda.</div>';
+      }
+    } catch (e) {
+      $("ponto").classList.remove("on");
+      $("txtCamera").textContent = "sem conexão com o servidor";
+    }
+  }
+  atualizar();
+  setInterval(atualizar, 2000);
+</script>
+</body>
+</html>
