@@ -6,6 +6,8 @@ e alerta pelo **Telegram**.
 - 🟩 Caixa verde: cada planta (detectada pela cor verde)
 - 🟥 Caixa vermelha: mancha preta **dentro** da folha (a terra escura é ignorada)
 - 📲 Alerta com foto no Telegram, com filtro anti-spam
+- 🌡️ Temperatura e umidade relativa de Guaíra (PR), atualizadas a cada 10 minutos
+- 📷 Troca de câmera pela própria página
 - 🌍 Página acessível de qualquer lugar pelo Tailscale Funnel, com senha
 
 ---
@@ -69,7 +71,23 @@ tailscale funnel --bg 8000 off
 > administração (ele mostra o link). É preciso ativar HTTPS e o atributo `funnel`
 > na política da tailnet.
 
-## 5. Calibrar na horta
+## 5. Trocar de câmera
+
+No canto inferior direito do vídeo há uma lista com as câmeras que estão
+entregando imagem. Escolha outra e a transmissão troca na hora. Se a câmera
+escolhida não responder em 8 segundos, a página volta para a anterior.
+O botão de seta circular procura câmeras de novo (por exemplo, depois de
+ligar uma câmera USB). A troca vale até reiniciar o servidor; para mudar a
+câmera padrão, edite `camera: indice` no `config.yaml`.
+
+## 6. Clima
+
+Os dados vêm do [Open-Meteo](https://open-meteo.com/), gratuito e sem chave.
+A cidade e as coordenadas ficam em `clima:` no `config.yaml` (as atuais são de
+Guaíra, PR, e não da Guaíra de SP). O alerta do Telegram também leva a
+temperatura e a umidade do momento.
+
+## 7. Calibrar na horta
 
 Na página, clique em **Calibração**. Você verá:
 
@@ -102,9 +120,10 @@ sem sol batendo direto na lente. A C920e não enxerga no escuro.
 ```
 webplants/
 ├── app.py              servidor (página, /stream MJPEG, /api/status, login)
-├── camera.py           captura da C920e (DirectShow no Windows, V4L2 no Linux)
+├── camera.py           captura e troca de câmera (DirectShow no Windows, V4L2 no Linux)
 ├── detector.py         plantas + manchas (OpenCV)
 ├── notificador.py      Telegram + filtro anti-spam
+├── clima.py            temperatura e umidade (Open-Meteo)
 ├── config.yaml         todos os ajustes
 ├── .env.example        modelo do .env (token, chat_id, senha)
 ├── pegar_chat_id.py    descobre o chat_id e testa o bot

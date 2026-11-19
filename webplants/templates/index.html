@@ -4,148 +4,623 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WebPlants · Horta do colégio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --fundo: #0f1a14; --cartao: #17261d; --borda: #24382b;
-    --texto: #e6efe8; --suave: #93a89a; --verde: #4cc26a; --vermelho: #ff5a5a; --amarelo: #f2c94c;
+    --musgo: #0E1F1A;
+    --floresta: #16302A;
+    --vidro: rgba(22, 48, 42, .55);
+    --borda: rgba(238, 243, 236, .09);
+    --lima: #9BDB2E;
+    --lima-escura: #7DB81C;
+    --nevoa: #EEF3EC;
+    --liquen: #8FA89C;
+    --alerta: #FF6B57;
+    --raio-g: 28px;
+    --raio-m: 20px;
+    --curva: cubic-bezier(.2, .8, .2, 1);
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-         background: var(--fundo); color: var(--texto); }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-           padding: 14px 20px; border-bottom: 1px solid var(--borda); flex-wrap: wrap; }
-  h1 { font-size: 1.2rem; margin: 0; }
-  h1 span { color: var(--verde); }
-  .ao-vivo { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--suave); }
-  .ponto { width: 9px; height: 9px; border-radius: 50%; background: var(--vermelho); }
-  .ponto.on { background: var(--verde); box-shadow: 0 0 8px var(--verde); }
-  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr); gap: 16px;
-         padding: 16px 20px; max-width: 1500px; margin: 0 auto; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-  .cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; }
-  .video { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16/9; }
-  .video img { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .barra { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
-  button { background: transparent; color: var(--texto); border: 1px solid var(--borda);
-           padding: 6px 12px; border-radius: 8px; cursor: pointer; font: inherit; font-size: .85rem; }
-  button.ativo { background: var(--verde); color: #08120b; border-color: var(--verde); font-weight: 600; }
-  .legenda { font-size: .8rem; color: var(--suave); margin-left: auto; }
-  .legenda b.p { color: var(--verde); } .legenda b.m { color: var(--vermelho); }
-  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .num { font-size: 1.6rem; font-weight: 700; }
-  .rot { font-size: .78rem; color: var(--suave); }
-  .num.alerta { color: var(--vermelho); }
-  .linha { display: flex; justify-content: space-between; font-size: .85rem; padding: 5px 0;
-           border-top: 1px solid var(--borda); }
-  .linha:first-child { border-top: 0; }
-  .ok { color: var(--verde); } .ruim { color: var(--amarelo); }
-  h2 { font-size: .95rem; margin: 0 0 10px; }
-  .lateral { display: flex; flex-direction: column; gap: 16px; }
-  .alertas { display: flex; flex-direction: column; gap: 10px; max-height: 52vh; overflow: auto; }
-  .alerta { display: flex; gap: 10px; align-items: center; text-decoration: none; color: inherit; }
-  .alerta img { width: 96px; aspect-ratio: 16/9; object-fit: cover; border-radius: 6px; border: 1px solid var(--borda); }
-  .vazio { color: var(--suave); font-size: .85rem; }
-  .barra-prog { height: 6px; background: var(--borda); border-radius: 3px; overflow: hidden; margin-top: 4px; }
-  .barra-prog div { height: 100%; background: var(--vermelho); width: 0; transition: width .3s; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; min-height: 100vh; overflow-x: hidden;
+    font-family: "Montserrat", system-ui, sans-serif; font-size: 15px; line-height: 1.5;
+    background: var(--musgo); color: var(--nevoa);
+    -webkit-font-smoothing: antialiased;
+  }
+  button, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--lima); outline-offset: 3px; border-radius: 8px; }
+
+  /* ---------- Fundo: a própria horta, desfocada ---------- */
+  .fundo { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+  .fundo canvas {
+    position: absolute; inset: -10%; width: 120%; height: 120%;
+    filter: blur(48px) saturate(1.35) brightness(.42);
+    opacity: 0; transition: opacity 2.4s ease;
+  }
+  .fundo canvas.pronto { opacity: 1; }
+  .fundo::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(60% 50% at 75% 15%, rgba(155, 219, 46, .10), transparent 70%),
+      radial-gradient(70% 60% at 10% 90%, rgba(22, 48, 42, .9), transparent 70%);
+  }
+  .fundo::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(120% 90% at 50% 40%, transparent 40%, rgba(6, 14, 11, .85));
+  }
+
+  /* ---------- Topo ---------- */
+  .topo {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 26px clamp(18px, 4vw, 56px) 0;
+  }
+  .marca { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+  .marca svg { width: 30px; height: 30px; }
+  .marca span { font-size: 15px; letter-spacing: .32em; }
+  .marca b { font-weight: 800; }
+  .marca i { font-style: normal; font-weight: 300; color: var(--liquen); }
+  .topo-dir { display: flex; align-items: center; gap: 18px; }
+  .relogio { font-variant-numeric: tabular-nums; color: var(--liquen); font-size: 14px; }
+  .ao-vivo {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 8px 16px 8px 14px; border-radius: 999px;
+    border: 1.5px solid var(--lima); font-size: 13px; font-weight: 600;
+  }
+  .ao-vivo.off { border-color: var(--alerta); }
+  .pulso { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--lima); }
+  .pulso::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    background: inherit; animation: pulso 2s var(--curva) infinite;
+  }
+  .ao-vivo.off .pulso { background: var(--alerta); }
+  @keyframes pulso { from { transform: scale(1); opacity: .7; } to { transform: scale(3.2); opacity: 0; } }
+
+  /* ---------- Palco: palavra gigante + vídeo à frente ---------- */
+  .palco { position: relative; padding: 0 clamp(18px, 4vw, 56px) 40px; }
+  .palavra {
+    margin: clamp(10px, 2vw, 24px) 0 0; text-align: center; user-select: none;
+    font-weight: 900; line-height: .8; letter-spacing: -.045em;
+    font-size: clamp(96px, 18.5vw, 300px); color: var(--nevoa);
+    display: flex; justify-content: center; overflow: hidden; padding-bottom: .06em;
+    will-change: transform;
+  }
+  .palavra span { display: inline-block; transform: translateY(105%); }
+  .carregado .palavra span { animation: subir 1.1s var(--curva) forwards; }
+  .carregado .palavra span:nth-child(2) { animation-delay: .07s; }
+  .carregado .palavra span:nth-child(3) { animation-delay: .14s; }
+  .carregado .palavra span:nth-child(4) { animation-delay: .21s; }
+  .carregado .palavra span:nth-child(5) { animation-delay: .28s; }
+  @keyframes subir { to { transform: translateY(0); } }
+
+  .grade {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px;
+    max-width: 1440px; margin: calc(clamp(96px, 18.5vw, 300px) * -.3) auto 0;
+  }
+
+  /* Vídeo */
+  .tela { opacity: 0; transform: translateY(80px) scale(.97); }
+  .carregado .tela { animation: emergir 1.3s .55s var(--curva) forwards; }
+  @keyframes emergir { to { opacity: 1; transform: none; } }
+  .moldura {
+    position: relative; aspect-ratio: 16 / 9; border-radius: var(--raio-g); overflow: hidden;
+    background: var(--floresta);
+    box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .75), 0 0 0 1px var(--borda);
+  }
+  .moldura img { width: 100%; height: 100%; object-fit: cover; display: block;
+                 opacity: 0; transition: opacity .8s ease, filter .5s ease, transform .5s var(--curva); }
+  .moldura img.pronto { opacity: 1; }
+  .moldura.trocando img { filter: blur(14px) brightness(.6); transform: scale(1.04); }
+  .moldura.calibracao img { object-fit: contain; background: #000; }
+  .aviso {
+    position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+    color: var(--liquen); font-size: 14px; pointer-events: none;
+    transition: opacity .4s ease;
+  }
+  .aviso.escondido { opacity: 0; }
+  .aviso .anel {
+    width: 34px; height: 34px; margin: 0 auto 12px; border-radius: 50%;
+    border: 2.5px solid rgba(155, 219, 46, .25); border-top-color: var(--lima);
+    animation: girar .9s linear infinite;
+  }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  .selo-mancha {
+    position: absolute; left: 18px; top: 18px; display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    background: rgba(255, 107, 87, .92); color: #2A0A05;
+    transform: translateY(-140%); transition: transform .5s var(--curva);
+  }
+  .selo-mancha.ativo { transform: none; }
+  .moldura.trocando .selo-mancha { transform: translateY(-140%); }
+  .moldura.trocando .aviso { color: var(--nevoa); }
+
+  .controles {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px;
+  }
+  .seg {
+    position: relative; display: inline-flex; padding: 4px; border-radius: 999px;
+    background: var(--vidro); border: 1px solid var(--borda); backdrop-filter: blur(14px);
+  }
+  .seg button {
+    position: relative; z-index: 1; border: 0; background: none; cursor: pointer;
+    padding: 8px 18px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    transition: color .3s ease;
+  }
+  .seg button[aria-pressed="true"] { color: #10210A; }
+  .seg .indicador {
+    position: absolute; top: 4px; bottom: 4px; left: 4px; border-radius: 999px;
+    background: var(--lima); transition: transform .45s var(--curva), width .45s var(--curva);
+  }
+  .legenda { display: flex; gap: 14px; font-size: 12.5px; color: var(--liquen); }
+  .legenda i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; }
+  .direita { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .pilula {
+    display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px;
+    border-radius: 999px; background: var(--vidro); border: 1px solid var(--borda);
+    backdrop-filter: blur(14px); cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: border-color .25s ease, background .25s ease;
+  }
+  .pilula:hover { border-color: rgba(155, 219, 46, .5); }
+  .pilula svg { width: 16px; height: 16px; flex: none; }
+  .pilula select {
+    appearance: none; background: none; border: 0; cursor: pointer; padding-right: 16px;
+    font-size: 13px; font-weight: 500; max-width: 210px; text-overflow: ellipsis;
+    background-image: linear-gradient(45deg, transparent 50%, var(--liquen) 50%),
+                      linear-gradient(135deg, var(--liquen) 50%, transparent 50%);
+    background-position: right 5px center, right 0 center; background-size: 5px 5px; background-repeat: no-repeat;
+  }
+  .pilula select option { background: var(--floresta); color: var(--nevoa); }
+  .icone-btn { width: 38px; padding: 0; justify-content: center; }
+  .icone-btn.girando svg { animation: girar .8s linear infinite; }
+
+  /* Painel lateral */
+  .painel { display: flex; flex-direction: column; gap: 14px; }
+  .bloco {
+    background: var(--vidro); border: 1px solid var(--borda); border-radius: var(--raio-m);
+    backdrop-filter: blur(22px) saturate(1.2); -webkit-backdrop-filter: blur(22px) saturate(1.2);
+    padding: 20px 22px; opacity: 0; transform: translateX(30px);
+  }
+  .carregado .bloco { animation: chegar .9s var(--curva) forwards; }
+  .carregado .bloco:nth-child(1) { animation-delay: .9s; }
+  .carregado .bloco:nth-child(2) { animation-delay: 1.0s; }
+  .carregado .bloco:nth-child(3) { animation-delay: 1.1s; }
+  @keyframes chegar { to { opacity: 1; transform: none; } }
+  .bloco h2 { margin: 0 0 14px; font-size: 14px; font-weight: 600; color: var(--liquen); }
+
+  /* Clima */
+  .clima { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+  .clima .temp { font-size: 54px; font-weight: 300; line-height: 1; letter-spacing: -.03em;
+                 font-variant-numeric: tabular-nums; }
+  .clima .temp sup { font-size: 22px; font-weight: 400; vertical-align: top; margin-left: 2px; }
+  .clima .icone { font-size: 30px; margin-right: 8px; vertical-align: 14px; }
+  .clima .desc { grid-column: 1; font-size: 13.5px; color: var(--liquen); }
+  .gauge { grid-row: 1 / span 2; grid-column: 2; position: relative; width: 92px; height: 92px; }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge circle { fill: none; stroke-width: 7; }
+  .gauge .trilho { stroke: rgba(238, 243, 236, .08); }
+  .gauge .valor { stroke: var(--lima); stroke-linecap: round;
+                  stroke-dasharray: 239; stroke-dashoffset: 239; transition: stroke-dashoffset 1.4s var(--curva); }
+  .gauge div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+  .gauge b { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .gauge small { font-size: 10.5px; color: var(--liquen); }
+  .clima-extra { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px;
+                 margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--borda); font-size: 12.5px; }
+  .clima-extra span { color: var(--liquen); display: block; font-size: 11.5px; }
+  .clima-extra b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .fonte { grid-column: 1 / -1; font-size: 11.5px; color: var(--liquen); margin-top: 10px; }
+
+  /* Detecção */
+  .numeros { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .numeros div { padding: 12px 14px; border-radius: 14px; background: rgba(14, 31, 26, .55);
+                 transition: background .4s ease, box-shadow .4s ease; }
+  .numeros b { display: block; font-size: 30px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .numeros span { font-size: 12px; color: var(--liquen); }
+  .numeros .ha-mancha { background: rgba(255, 107, 87, .16); box-shadow: inset 0 0 0 1px rgba(255, 107, 87, .5);
+                        animation: respirar 2.2s ease-in-out infinite; }
+  .numeros .ha-mancha b { color: var(--alerta); }
+  @keyframes respirar { 50% { box-shadow: inset 0 0 0 1px rgba(255, 107, 87, .9), 0 0 28px -6px rgba(255, 107, 87, .6); } }
+  .confirma { margin-top: 14px; font-size: 12px; color: var(--liquen); }
+  .barra { height: 5px; margin-top: 6px; border-radius: 3px; background: rgba(238, 243, 236, .08); overflow: hidden; }
+  .barra div { height: 100%; width: 0; border-radius: 3px; background: var(--alerta);
+               transition: width .6s var(--curva); }
+  .linhas { margin-top: 14px; font-size: 12.5px; }
+  .linhas p { display: flex; justify-content: space-between; margin: 0; padding: 7px 0;
+              border-top: 1px solid var(--borda); }
+  .linhas p span:first-child { color: var(--liquen); }
+  .linhas .ok { color: var(--lima); }
+  .linhas .ruim { color: #F2C94C; }
+
+  /* Alertas */
+  .alertas { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto;
+             margin: 0 -8px; padding: 0 8px; scrollbar-width: thin; }
+  .alerta {
+    display: flex; gap: 12px; align-items: center; width: 100%; text-align: left;
+    padding: 6px; border: 0; border-radius: 12px; background: none; cursor: pointer;
+    transition: background .2s ease;
+  }
+  .alerta:hover { background: rgba(238, 243, 236, .05); }
+  .alerta img { width: 84px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; flex: none; }
+  .alerta b { display: block; font-size: 13.5px; font-weight: 600; }
+  .alerta span { font-size: 12px; color: var(--liquen); }
+  .alerta.novo { animation: entrar .7s var(--curva); }
+  @keyframes entrar { from { opacity: 0; transform: translateY(-12px); } }
+  .vazio { font-size: 13px; color: var(--liquen); margin: 0; }
+
+  .rodape { text-align: center; font-size: 12px; color: var(--liquen); padding: 10px 0 36px; }
+  .rodape a { color: inherit; }
+
+  /* Aviso flutuante */
+  .toast {
+    position: fixed; right: 22px; bottom: 22px; z-index: 20; max-width: 340px;
+    display: flex; gap: 12px; align-items: center; padding: 14px 18px; border-radius: 16px;
+    background: var(--floresta); border: 1px solid var(--borda); box-shadow: 0 20px 50px -10px rgba(0, 0, 0, .6);
+    font-size: 13.5px; transform: translateY(140%); opacity: 0;
+    transition: transform .55s var(--curva), opacity .4s ease;
+  }
+  .toast.ativo { transform: none; opacity: 1; }
+  .toast .ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--lima); flex: none; }
+  .toast.erro .ponto, .toast.mancha .ponto { background: var(--alerta); }
+
+  /* Foto do alerta ampliada */
+  .modal {
+    position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 24px;
+    background: rgba(6, 14, 11, .8); backdrop-filter: blur(10px);
+    opacity: 0; pointer-events: none; transition: opacity .35s ease;
+  }
+  .modal.aberto { opacity: 1; pointer-events: auto; }
+  .modal figure { margin: 0; max-width: min(1100px, 100%); transform: scale(.94); transition: transform .45s var(--curva); }
+  .modal.aberto figure { transform: none; }
+  .modal img { width: 100%; border-radius: var(--raio-m); display: block; }
+  .modal figcaption { margin-top: 12px; display: flex; justify-content: space-between; font-size: 13.5px; color: var(--liquen); }
+  .modal button { background: none; border: 0; cursor: pointer; color: var(--nevoa); font-weight: 600; }
+
+  @media (max-width: 1050px) {
+    .grade { grid-template-columns: 1fr; }
+    .painel { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    .relogio { display: none; }
+    .marca span { font-size: 13px; letter-spacing: .24em; }
+    .grade { margin-top: calc(clamp(96px, 18.5vw, 300px) * -.24); }
+    .moldura { border-radius: var(--raio-m); }
+    .legenda { display: none; }
+    .direita { margin-left: 0; width: 100%; }
+    .pilula.camera { flex: 1; }
+    .pilula select { max-width: none; width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001s !important; animation-delay: 0s !important;
+                             transition-duration: .001s !important; }
+    .pulso::after { display: none; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>🌱 Web<span>Plants</span> · Horta do colégio</h1>
-  <div class="ao-vivo"><div class="ponto" id="ponto"></div><span id="txtCamera">conectando…</span></div>
+<div class="fundo" aria-hidden="true"><canvas id="fundo" width="64" height="36"></canvas></div>
+
+<header class="topo">
+  <a class="marca" href="#" aria-label="WebPlants">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M16 29V14" stroke="#9BDB2E" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M16 17c0-6 4-10 11-10 0 7-4 11-11 10Z" fill="#9BDB2E"/>
+      <path d="M16 21c0-5-3.5-8.5-10-8.5 0 6 3.5 9 10 8.5Z" fill="#9BDB2E" opacity=".65"/>
+    </svg>
+    <span><b>WEB</b><i>PLANTS</i></span>
+  </a>
+  <div class="topo-dir">
+    <span class="relogio" id="relogio"></span>
+    <span class="ao-vivo off" id="aoVivo"><span class="pulso"></span><span id="txtVivo">Conectando</span></span>
+  </div>
 </header>
 
-<main>
-  <section class="cartao">
-    <div class="video"><img id="video" src="/stream" alt="Transmissão ao vivo da horta"></div>
-    <div class="barra">
-      <button id="btnVideo" class="ativo" onclick="modo('video')">Vídeo</button>
-      <button id="btnMascara" onclick="modo('mascara')">Calibração</button>
-      <div class="legenda" id="legenda"><b class="p">■</b> planta &nbsp; <b class="m">■</b> mancha preta</div>
-    </div>
-  </section>
+<main class="palco">
+  <h1 class="palavra" aria-label="Horta"><span>H</span><span>O</span><span>R</span><span>T</span><span>A</span></h1>
 
-  <aside class="lateral">
-    <div class="cartao">
-      <div class="grade">
-        <div><div class="num" id="nPlantas">–</div><div class="rot">plantas no quadro</div></div>
-        <div><div class="num" id="nManchas">–</div><div class="rot">manchas agora</div></div>
+  <div class="grade">
+    <section class="tela" aria-label="Transmissão ao vivo">
+      <div class="moldura" id="moldura">
+        <img id="video" alt="Transmissão ao vivo da horta do colégio">
+        <div class="aviso" id="aviso"><div><div class="anel"></div><span id="txtAviso">Abrindo a câmera</span></div></div>
+        <div class="selo-mancha" id="seloMancha" role="status">Mancha preta na imagem</div>
       </div>
-      <div class="rot" style="margin-top:12px">Confirmação de alerta</div>
-      <div class="barra-prog"><div id="prog"></div></div>
-    </div>
 
-    <div class="cartao">
-      <div class="linha"><span>Análise</span><span id="sAnalise">–</span></div>
-      <div class="linha"><span>Brilho folha / limiar preto</span><span id="sLimiar">–</span></div>
-      <div class="linha"><span>Telegram</span><span id="sTelegram">–</span></div>
-      <div class="linha"><span>Próximo alerta</span><span id="sProximo">–</span></div>
-    </div>
+      <div class="controles">
+        <div class="seg" id="seg" role="group" aria-label="Modo de visualização">
+          <span class="indicador" id="indicador"></span>
+          <button type="button" data-modo="video" aria-pressed="true">Vídeo</button>
+          <button type="button" data-modo="mascara" aria-pressed="false">Calibração</button>
+        </div>
+        <div class="legenda" id="legenda"></div>
+        <div class="direita">
+          <label class="pilula camera" title="Escolher câmera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.8l1.4-2h6.6l1.4 2h1.8A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/>
+              <circle cx="12" cy="13" r="3.6"/></svg>
+            <select id="cameras" aria-label="Câmera"><option>Procurando câmeras</option></select>
+          </label>
+          <button type="button" class="pilula icone-btn" id="btnBuscar" title="Procurar câmeras de novo" aria-label="Procurar câmeras de novo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+          </button>
+          <button type="button" class="pilula icone-btn" id="btnTela" title="Tela cheia" aria-label="Tela cheia">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
 
-    <div class="cartao">
-      <h2>Últimos alertas</h2>
-      <div class="alertas" id="alertas"><div class="vazio">Nenhum alerta ainda.</div></div>
-    </div>
-  </aside>
+    <aside class="painel">
+      <section class="bloco" aria-labelledby="tClima">
+        <h2 id="tClima">Agora em Guaíra, PR</h2>
+        <div class="clima">
+          <div class="temp"><span class="icone" id="cIcone">🌡️</span><span id="cTemp">–</span><sup>°C</sup></div>
+          <div class="gauge" title="Umidade relativa do ar">
+            <svg viewBox="0 0 92 92"><circle class="trilho" cx="46" cy="46" r="38"/><circle class="valor" id="cAnel" cx="46" cy="46" r="38"/></svg>
+            <div><b id="cUmid" data-sufixo="%">–</b><small>umidade</small></div>
+          </div>
+          <div class="desc" id="cDesc">Buscando o clima</div>
+          <div class="clima-extra">
+            <div><span>Sensação</span><b id="cSens">–</b></div>
+            <div><span>Mín / máx</span><b id="cMinMax">–</b></div>
+            <div><span>Vento</span><b id="cVento">–</b></div>
+          </div>
+          <div class="fonte" id="cFonte"></div>
+        </div>
+      </section>
+
+      <section class="bloco" aria-labelledby="tFolhas">
+        <h2 id="tFolhas">Folhas na imagem</h2>
+        <div class="numeros">
+          <div><b id="nPlantas">–</b><span>plantas</span></div>
+          <div id="caixaManchas"><b id="nManchas">–</b><span>manchas agora</span></div>
+        </div>
+        <div class="confirma">Confirmando antes de avisar no Telegram</div>
+        <div class="barra"><div id="prog"></div></div>
+        <div class="linhas">
+          <p><span>Próximo aviso liberado</span><span id="sProximo">–</span></p>
+          <p><span>Telegram</span><span id="sTelegram">–</span></p>
+          <p><span>Brilho da folha / limite do preto</span><span id="sLimiar">–</span></p>
+          <p><span>Tempo de análise</span><span id="sAnalise">–</span></p>
+        </div>
+      </section>
+
+      <section class="bloco" aria-labelledby="tAlertas">
+        <h2 id="tAlertas">Avisos enviados</h2>
+        <div class="alertas" id="alertas"><p class="vazio">Nenhuma mancha confirmada até agora.</p></div>
+      </section>
+    </aside>
+  </div>
 </main>
 
+<footer class="rodape">Clima: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, atualizado a cada 10 minutos.</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span class="ponto"></span><span id="txtToast"></span></div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Foto do aviso">
+  <figure>
+    <img id="modalImg" alt="Foto do aviso com as manchas marcadas">
+    <figcaption><span id="modalTxt"></span><button type="button" id="modalFechar">Fechar</button></figcaption>
+  </figure>
+</div>
+
 <script>
-  const $ = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
+const semMovimento = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let modo = "video";
 
-  function modo(m) {
-    $("video").src = "/stream?modo=" + m + "&t=" + Date.now();
-    $("btnVideo").classList.toggle("ativo", m === "video");
-    $("btnMascara").classList.toggle("ativo", m === "mascara");
-    $("legenda").innerHTML = m === "video"
-      ? '<b class="p">■</b> planta &nbsp; <b class="m">■</b> mancha preta'
-      : '<span style="color:#4cc26a">■</span> folha &nbsp; <span style="color:#ffd200">■</span> pouca folha em volta &nbsp; <span style="color:#ff50c8">■</span> tamanho fora &nbsp; <span style="color:#ff5a5a">■</span> mancha';
-  }
+/* ---------- Entrada da página ---------- */
+requestAnimationFrame(() => document.body.classList.add("carregado"));
 
-  // Se o stream cair (ex.: internet oscilou), reconecta sozinho
-  $("video").addEventListener("error", () => setTimeout(() => {
-    const m = $("btnMascara").classList.contains("ativo") ? "mascara" : "video";
-    modo(m);
-  }, 2000));
+/* ---------- Relógio ---------- */
+function relogio() {
+  $("relogio").textContent = new Date().toLocaleString("pt-BR",
+    { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+relogio(); setInterval(relogio, 15000);
 
-  function tempo(s) {
-    if (!s) return "liberado";
-    const m = Math.floor(s / 60), r = s % 60;
-    return m ? `${m} min ${r} s` : `${r} s`;
-  }
+/* ---------- Números que deslizam até o novo valor ---------- */
+function animarNumero(el, alvo, casas = 0) {
+  if (alvo == null || isNaN(alvo)) { el.textContent = "–"; el.dataset.v = ""; return; }
+  const de = parseFloat(el.dataset.v);
+  el.dataset.v = alvo;
+  const fmt = v => v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas }) + (el.dataset.sufixo || "");
+  if (semMovimento || isNaN(de) || de === alvo) { el.textContent = fmt(alvo); return; }
+  const t0 = performance.now(), dur = 900;
+  (function passo(t) {
+    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(de + (alvo - de) * e);
+    if (p < 1) requestAnimationFrame(passo);
+  })(t0);
+}
 
-  let ultimaLista = "";
-  async function atualizar() {
-    try {
-      const r = await fetch("/api/status", { cache: "no-store" });
-      const s = await r.json();
-      $("ponto").classList.toggle("on", s.camera);
-      $("txtCamera").textContent = s.camera ? "ao vivo" : "câmera desconectada";
-      $("nPlantas").textContent = s.plantas;
-      $("nManchas").textContent = s.manchas;
-      $("nManchas").classList.toggle("alerta", s.manchas > 0);
-      $("prog").style.width = Math.min(100, 100 * s.seguidos / s.necessarios) + "%";
-      $("sAnalise").textContent = s.analise_ms + " ms";
-      $("sLimiar").textContent = s.plantas ? `${s.brilho_folha} / ≤ ${s.limiar}` : "sem planta";
-      $("sTelegram").textContent = s.telegram ? "configurado" : "não configurado";
-      $("sTelegram").className = s.telegram ? "ok" : "ruim";
-      $("sProximo").textContent = tempo(s.proximo_alerta_em);
-
-      const lista = JSON.stringify(s.alertas);
-      if (lista !== ultimaLista) {
-        ultimaLista = lista;
-        $("alertas").innerHTML = s.alertas.length ? s.alertas.map(a => `
-          <a class="alerta" href="/alertas/${a.arquivo}" target="_blank">
-            <img src="/alertas/${a.arquivo}" alt="">
-            <div><div>${a.manchas} mancha(s)</div><div class="rot">${a.quando}</div></div>
-          </a>`).join("") : '<div class="vazio">Nenhum alerta ainda.</div>';
-      }
-    } catch (e) {
-      $("ponto").classList.remove("on");
-      $("txtCamera").textContent = "sem conexão com o servidor";
+/* ---------- Vídeo ---------- */
+const video = $("video");
+function abrirStream() {
+  video.classList.remove("pronto");
+  video.src = "/stream?modo=" + modo + "&t=" + Date.now();
+  esperarQuadro();
+}
+let checagem;
+function esperarQuadro() {
+  clearInterval(checagem);
+  checagem = setInterval(() => {
+    if (video.naturalWidth > 0) {
+      clearInterval(checagem);
+      video.classList.add("pronto");
+      $("aviso").classList.add("escondido");
+      $("moldura").classList.remove("trocando");
     }
+  }, 150);
+}
+video.addEventListener("error", () => setTimeout(abrirStream, 2000));
+
+/* Fundo da página: um quadro do vídeo, bem pequeno e desfocado */
+const ctx = $("fundo").getContext("2d");
+setInterval(() => {
+  if (modo !== "video" || !video.naturalWidth) return;
+  try { ctx.drawImage(video, 0, 0, 64, 36); $("fundo").classList.add("pronto"); } catch (e) {}
+}, 1500);
+
+/* ---------- Vídeo / Calibração ---------- */
+const LEGENDAS = {
+  video: '<span><i style="background:#3CC83C"></i>planta</span><span><i style="background:#FF4040"></i>mancha</span>',
+  mascara: '<span><i style="background:#009600"></i>folha</span><span><i style="background:#FFD200"></i>pouca folha em volta</span>' +
+           '<span><i style="background:#FF50C8"></i>tamanho fora</span><span><i style="background:#FF4040"></i>mancha</span>'
+};
+function moverIndicador() {
+  const ativo = $("seg").querySelector('[aria-pressed="true"]');
+  $("indicador").style.width = ativo.offsetWidth + "px";
+  $("indicador").style.transform = `translateX(${ativo.offsetLeft - 4}px)`;
+}
+$("seg").addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b || b.dataset.modo === modo) return;
+  modo = b.dataset.modo;
+  $("seg").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  $("moldura").classList.toggle("calibracao", modo === "mascara");
+  $("legenda").innerHTML = LEGENDAS[modo];
+  moverIndicador(); abrirStream();
+});
+addEventListener("resize", moverIndicador);
+document.fonts && document.fonts.ready.then(moverIndicador);
+
+$("btnTela").addEventListener("click", () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else $("moldura").requestFullscreen?.();
+});
+
+/* ---------- Aviso flutuante ---------- */
+let tToast;
+function avisar(txt, tipo = "") {
+  $("txtToast").textContent = txt;
+  $("toast").className = "toast ativo " + tipo;
+  clearTimeout(tToast); tToast = setTimeout(() => $("toast").classList.remove("ativo"), 4500);
+}
+
+/* ---------- Câmeras ---------- */
+async function carregarCameras(atualizar = false) {
+  $("btnBuscar").classList.add("girando");
+  try {
+    const r = await (await fetch("/api/cameras" + (atualizar ? "?atualizar=true" : ""))).json();
+    const sel = $("cameras");
+    sel.innerHTML = r.cameras.length
+      ? r.cameras.map(c => `<option value="${c.indice}" ${c.indice === r.atual ? "selected" : ""}>${c.nome}</option>`).join("")
+      : '<option>Nenhuma câmera encontrada</option>';
+    if (atualizar) avisar(`${r.cameras.length} câmera(s) encontrada(s)`);
+  } catch (e) {
+    avisar("Não consegui listar as câmeras", "erro");
+  } finally {
+    $("btnBuscar").classList.remove("girando");
   }
-  atualizar();
-  setInterval(atualizar, 2000);
+}
+$("btnBuscar").addEventListener("click", () => carregarCameras(true));
+$("cameras").addEventListener("change", async ev => {
+  const indice = parseInt(ev.target.value, 10); if (isNaN(indice)) return;
+  const nome = ev.target.selectedOptions[0].textContent;
+  $("moldura").classList.add("trocando");
+  $("txtAviso").textContent = "Trocando para " + nome;
+  $("aviso").classList.remove("escondido");
+  ev.target.disabled = true;
+  try {
+    const r = await (await fetch("/api/camera", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ indice })
+    })).json();
+    if (r.ok) avisar("Câmera trocada para " + nome);
+    else { avisar(nome + " não respondeu. Voltei para a câmera anterior.", "erro"); ev.target.value = r.atual; }
+  } catch (e) {
+    avisar("Sem resposta do servidor ao trocar a câmera", "erro");
+  } finally {
+    ev.target.disabled = false;
+    abrirStream();
+  }
+});
+
+/* ---------- Status da detecção ---------- */
+function tempo(s) {
+  if (!s) return "agora";
+  const m = Math.floor(s / 60), r = s % 60;
+  return m ? `em ${m} min` : `em ${r} s`;
+}
+let ultimoAlerta = null, alertasCache = [];
+async function atualizarStatus() {
+  try {
+    const s = await (await fetch("/api/status", { cache: "no-store" })).json();
+    $("aoVivo").classList.toggle("off", !s.camera);
+    $("txtVivo").textContent = s.camera ? "Ao vivo" : "Câmera desconectada";
+    animarNumero($("nPlantas"), s.plantas);
+    animarNumero($("nManchas"), s.manchas);
+    $("caixaManchas").classList.toggle("ha-mancha", s.manchas > 0);
+    $("seloMancha").classList.toggle("ativo", s.manchas > 0 && modo === "video");
+    $("seloMancha").textContent = s.manchas === 1 ? "1 mancha preta na imagem" : `${s.manchas} manchas pretas na imagem`;
+    $("prog").style.width = Math.min(100, 100 * s.seguidos / s.necessarios) + "%";
+    $("sProximo").textContent = tempo(s.proximo_alerta_em);
+    $("sTelegram").textContent = s.telegram ? "Conectado" : "Sem token no .env";
+    $("sTelegram").className = s.telegram ? "ok" : "ruim";
+    $("sLimiar").textContent = s.plantas ? `${s.brilho_folha} / ${s.limiar}` : "sem folha";
+    $("sAnalise").textContent = s.analise_ms + " ms";
+    desenharAlertas(s.alertas);
+  } catch (e) {
+    $("aoVivo").classList.add("off");
+    $("txtVivo").textContent = "Sem conexão";
+  }
+}
+function desenharAlertas(lista) {
+  const primeiro = lista[0]?.arquivo ?? null;
+  if (primeiro === ultimoAlerta) return;
+  const eraPrimeiraCarga = ultimoAlerta === null && alertasCache.length === 0;
+  const novos = new Set(lista.map(a => a.arquivo).filter(a => !alertasCache.some(b => b.arquivo === a)));
+  ultimoAlerta = primeiro; alertasCache = lista;
+  $("alertas").innerHTML = lista.length ? lista.map(a => `
+    <button type="button" class="alerta ${!eraPrimeiraCarga && novos.has(a.arquivo) ? "novo" : ""}" data-arquivo="${a.arquivo}"
+            data-txt="${a.manchas} mancha(s) em ${a.quando}">
+      <img src="/alertas/${a.arquivo}" alt="" loading="lazy">
+      <div><b>${a.manchas === 1 ? "1 mancha" : a.manchas + " manchas"}</b><span>${a.quando}</span></div>
+    </button>`).join("") : '<p class="vazio">Nenhuma mancha confirmada até agora.</p>';
+  if (!eraPrimeiraCarga && lista.length && novos.size) avisar("Mancha confirmada e enviada ao Telegram", "mancha");
+}
+
+/* ---------- Foto ampliada ---------- */
+$("alertas").addEventListener("click", ev => {
+  const b = ev.target.closest(".alerta"); if (!b) return;
+  $("modalImg").src = "/alertas/" + b.dataset.arquivo;
+  $("modalTxt").textContent = b.dataset.txt;
+  $("modal").classList.add("aberto"); $("modalFechar").focus();
+});
+function fecharModal() { $("modal").classList.remove("aberto"); }
+$("modalFechar").addEventListener("click", fecharModal);
+$("modal").addEventListener("click", ev => { if (ev.target === $("modal")) fecharModal(); });
+addEventListener("keydown", ev => { if (ev.key === "Escape") fecharModal(); });
+
+/* ---------- Clima ---------- */
+async function atualizarClima() {
+  try {
+    const c = await (await fetch("/api/clima", { cache: "no-store" })).json();
+    if (!c.ok) { $("cDesc").textContent = "Clima indisponível. Tento de novo em 1 minuto."; return; }
+    $("cIcone").textContent = c.icone;
+    animarNumero($("cTemp"), c.temperatura, 1);
+    animarNumero($("cUmid"), c.umidade);
+    $("cAnel").style.strokeDashoffset = 239 * (1 - c.umidade / 100);
+    $("cDesc").textContent = c.descricao;
+    $("cSens").textContent = c.sensacao.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + "°";
+    $("cMinMax").textContent = `${c.minima}° / ${c.maxima}°`;
+    $("cVento").textContent = c.vento + " km/h";
+    $("cFonte").textContent = (c.desatualizado ? "Sem conexão agora. Último dado das " : "Medição das ") + c.horario;
+  } catch (e) {
+    $("cDesc").textContent = "Clima indisponível. Tento de novo em 1 minuto.";
+  }
+}
+
+/* ---------- Início ---------- */
+$("legenda").innerHTML = LEGENDAS.video;
+moverIndicador();
+abrirStream();
+carregarCameras();
+atualizarStatus(); setInterval(atualizarStatus, 2000);
+atualizarClima(); setInterval(atualizarClima, 60000);
 </script>
 </body>
 </html>

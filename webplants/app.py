@@ -19,8 +19,10 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from pydantic import BaseModel
 
-from camera import Camera
+from camera import Camera, listar_cameras
+from clima import Clima
 from detector import DetectorPlantas, Resultado, desenhar
 from notificador import FiltroAlerta, Telegram
 
@@ -49,6 +51,7 @@ class Estado:
 camera = Camera(**CFG["camera"])
 detector = DetectorPlantas(CFG["deteccao"])
 telegram = Telegram(os.getenv("TELEGRAM_TOKEN"), os.getenv("TELEGRAM_CHAT_ID"))
+clima = Clima(CFG.get("clima", {}))
 filtro = FiltroAlerta(CFG["alerta"]["quadros_seguidos"], CFG["alerta"]["intervalo_minutos"])
 estado = Estado()
 
@@ -102,9 +105,12 @@ def disparar_alerta(quadro, resultado):
                                   "manchas": n})
         del estado.alertas[CFG["alerta"]["manter_ultimos"]:]
 
-    legenda = (f"🌱 WebPlants: {n} mancha(s) preta(s) detectada(s)\n"
-               f"🕒 {agora:%d/%m/%Y %H:%M:%S}\n"
-               f"Veja a transmissão ao vivo para avaliar a folha.")
+    linhas = [f"🌱 WebPlants: {n} mancha(s) preta(s) detectada(s)",
+              f"🕒 {agora:%d/%m/%Y %H:%M:%S}"]
+    if clima.resumo():
+        linhas.append(clima.resumo())
+    linhas.append("Veja a transmissão ao vivo para avaliar a folha.")
+    legenda = "\n".join(linhas)
     print(f"[alerta] {n} mancha(s) - {nome}")
     telegram.enviar_foto(imagem, legenda)
 
@@ -114,9 +120,11 @@ def disparar_alerta(quadro, resultado):
 async def ciclo_de_vida(_app):
     carregar_alertas_antigos()
     camera.iniciar()
+    clima.iniciar()
     threading.Thread(target=loop_deteccao, daemon=True).start()
     yield
     estado.rodando = False
+    clima.parar()
     camera.parar()
 
 
@@ -174,6 +182,7 @@ def api_status():
         alertas = list(estado.alertas)
     return {
         "camera": camera.conectada,
+        "camera_indice": camera.indice,
         "plantas": len(r.plantas),
         "manchas": len(r.manchas),
         "analise_ms": round(r.tempo_ms, 1),
@@ -185,6 +194,41 @@ def api_status():
         "telegram": telegram.configurado,
         "alertas": alertas,
     }
+
+
+@app.get("/api/clima")
+def api_clima():
+    return clima.obter()
+
+
+_cache_cameras = {"quando": 0.0, "lista": []}
+_trava_cameras = threading.Lock()
+
+
+@app.get("/api/cameras")
+def api_cameras(atualizar: bool = False):
+    with _trava_cameras:
+        if atualizar or time.time() - _cache_cameras["quando"] > 60 or not _cache_cameras["lista"]:
+            _cache_cameras["lista"] = listar_cameras(camera.indice)
+            _cache_cameras["quando"] = time.time()
+        return {"atual": camera.indice, "cameras": _cache_cameras["lista"]}
+
+
+class PedidoCamera(BaseModel):
+    indice: int
+
+
+@app.post("/api/camera")
+def api_trocar_camera(pedido: PedidoCamera):
+    if not 0 <= pedido.indice < 64:
+        raise HTTPException(400, "Índice inválido")
+    ok = camera.trocar(pedido.indice)
+    if ok:
+        filtro.seguidos = 0
+        with estado.trava:
+            estado.resultado = Resultado()  # limpa as caixas da câmera anterior
+        print(f"[camera] Trocada para a câmera {pedido.indice} pela página.")
+    return {"ok": ok, "atual": camera.indice}
 
 
 @app.get("/alertas/{nome}")

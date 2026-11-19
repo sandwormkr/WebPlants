@@ -33,10 +33,16 @@ deteccao:
   # Veja os valores atuais no topo da tela de Calibração.
   mancha_fator_relativo: 0.55  # aumente (ex.: 0.7) se a mancha não for detectada
   mancha_v_max: 110            # teto absoluto de brilho (0-255)
-  mancha_area_min: 40          # em pixels (na imagem de análise)
+  mancha_area_min: 15          # em pixels (na imagem de análise)
   mancha_area_max: 0.15        # fração da área da planta
   mancha_cercada_min: 0.45     # fração da borda da mancha que precisa ser folha
   mancha_borda_px: 25          # tamanho do "entalhe" na borda da folha que ainda conta
+
+clima:
+  cidade: "Guaíra, PR"
+  latitude: -24.08             # Guaíra (PR), não a de SP
+  longitude: -54.2558
+  atualizar_minutos: 10        # dados do Open-Meteo, sem chave de API
 
 alerta:
   quadros_seguidos: 8          # análises seguidas com mancha antes de alertar
